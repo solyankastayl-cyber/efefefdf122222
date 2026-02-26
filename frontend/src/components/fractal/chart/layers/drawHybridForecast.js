@@ -554,9 +554,6 @@ export function drawMacroForecast(
   console.log('[drawMacroForecast] macroPath:', macroData.length);
   console.log('[drawMacroForecast] macroAdjustment:', macroAdjustment);
   
-  // If no macro path, fallback to hybrid
-  const mainData = macroData.length > 0 ? macroData : hybridData;
-  
   // Forecast zone width
   const forecastZoneWidth = Math.min(plotW * 0.55, 420) - 50;
   const dayToX = (t) => xRightAnchor + (t / N) * forecastZoneWidth;
