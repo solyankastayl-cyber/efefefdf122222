@@ -753,8 +753,8 @@ export function drawMacroForecast(
   
   ctx.restore();
   
-  // === 10. FORECAST SUMMARY ===
-  const dataForReturn = mainData.length > 0 ? mainData : hybridData;
+  // === 11. FORECAST SUMMARY (based on Hybrid - main line) ===
+  const dataForReturn = hybridData.length > 0 ? hybridData : macroData;
   const startPrice = dataForReturn[0]?.price || anchorPrice;
   const endPrice = dataForReturn[dataForReturn.length - 1]?.price || startPrice;
   const expectedReturn = ((endPrice - startPrice) / startPrice) * 100;
@@ -768,6 +768,6 @@ export function drawMacroForecast(
   const labelY = canvasHeight - marginBottom + 18;
   
   ctx.fillStyle = "rgba(0,0,0,0.6)";
-  ctx.fillText(`Macro Forecast: ${sign}${expectedReturn.toFixed(1)}%`, labelX, labelY);
+  ctx.fillText(`Forecast: ${sign}${expectedReturn.toFixed(1)}%`, labelX, labelY);
   ctx.restore();
 }
