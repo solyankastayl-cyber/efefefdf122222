@@ -231,36 +231,36 @@ function ForecastTooltip({ day, forecastData, currentPrice, horizonDays, symbol 
                 justifyContent: "space-between",
                 padding: '2px 0',
                 borderBottom: '1px solid #f0f0f0'
-          }}>
-            <span style={{ color: "#8b5cf6", fontWeight: 500, display: 'flex', alignItems: 'center', gap: 3, fontSize: 9 }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#8b5cf6' }}></span>
-              Replay
-            </span>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontWeight: 600, fontSize: 10 }}>{formatPrice(replayPrice)}</div>
-              <div style={{ fontSize: 8, color: replayPrice >= currentPrice ? '#22c55e' : '#ef4444' }}>
-                {formatReturn(replayPrice)}
+              }}>
+                <span style={{ color: "#8b5cf6", fontWeight: 500, display: 'flex', alignItems: 'center', gap: 3, fontSize: 9 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#8b5cf6' }}></span>
+                  Replay
+                </span>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontWeight: 600, fontSize: 10 }}>{formatPrice(replayPrice)}</div>
+                  <div style={{ fontSize: 8, color: replayPrice >= currentPrice ? '#22c55e' : '#ef4444' }}>
+                    {formatReturn(replayPrice)}
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
+            
+            {/* Range P10-P90 */}
+            {(p10 || p90) && (
+              <div style={{ 
+                display: "flex", 
+                justifyContent: "space-between",
+                padding: '2px 0',
+                marginTop: 2
+              }}>
+                <span style={{ color: "rgba(0,0,0,0.4)", fontSize: 8 }}>Range</span>
+                <span style={{ fontSize: 9, fontFamily: 'monospace' }}>
+                  {formatPrice(p10)} — {formatPrice(p90)}
+                </span>
+              </div>
+            )}
           </div>
-        )}
-        
-        {/* Range P10-P90 */}
-        {(p10 || p90) && (
-          <div style={{ 
-            display: "flex", 
-            justifyContent: "space-between",
-            padding: '2px 0',
-            marginTop: 2
-          }}>
-            <span style={{ color: "rgba(0,0,0,0.4)", fontSize: 8 }}>Range</span>
-            <span style={{ fontSize: 9, fontFamily: 'monospace' }}>
-              {formatPrice(p10)} — {formatPrice(p90)}
-            </span>
-          </div>
-        )}
-      </div>
-    </div>
+        </div>
   );
 }
 
