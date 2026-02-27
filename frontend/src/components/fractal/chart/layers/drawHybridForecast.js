@@ -594,19 +594,19 @@ export function drawMacroForecast(
   ctx.fillText("NOW", xRightAnchor, marginTop - 6);
   ctx.restore();
   
-  // === MACRO MODE: Hybrid is MAIN, Macro is HINT (dashed) ===
-  // Hybrid = основная сплошная зелёная линия
-  // Macro = второстепенная пунктирная оранжевая (подсказка)
+  // === MACRO MODE: Macro is MAIN, Hybrid is HINT (dashed) ===
+  // Macro = основная сплошная оранжевая линия
+  // Hybrid = второстепенная пунктирная зелёная (подсказка)
   
-  // === 4. MACRO LINE (orange, dashed) - SECONDARY/HINT ===
-  if (macroData.length > 0) {
-    const points = macroData.map(p => ({
+  // === 4. HYBRID LINE (green, dashed) - SECONDARY/HINT ===
+  if (hybridData.length > 0) {
+    const points = hybridData.map(p => ({
       x: dayToX(p.t),
       y: y(p.price)
     }));
     
     ctx.save();
-    ctx.strokeStyle = 'rgba(245, 158, 11, 0.7)'; // Orange
+    ctx.strokeStyle = 'rgba(34, 197, 94, 0.7)'; // Green
     ctx.lineWidth = 2;
     ctx.setLineDash([6, 4]); // Dashed - hint/secondary
     ctx.lineCap = 'round';
@@ -616,17 +616,17 @@ export function drawMacroForecast(
     ctx.restore();
   }
   
-  // === 5. HYBRID LINE (green, solid, thick) - MAIN LINE ===
-  if (hybridData.length > 0) {
-    const points = hybridData.map(p => ({
+  // === 5. MACRO LINE (orange, solid, thick) - MAIN LINE ===
+  if (macroData.length > 0) {
+    const points = macroData.map(p => ({
       x: dayToX(p.t),
       y: y(p.price)
     }));
     
     ctx.save();
-    ctx.shadowColor = 'rgba(34, 197, 94, 0.3)';
+    ctx.shadowColor = 'rgba(245, 158, 11, 0.3)';
     ctx.shadowBlur = 8;
-    ctx.strokeStyle = '#22c55e'; // Green
+    ctx.strokeStyle = '#f59e0b'; // Orange/amber
     ctx.lineWidth = 3; // Thick - main line
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
