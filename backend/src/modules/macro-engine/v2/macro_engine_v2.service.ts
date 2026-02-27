@@ -228,10 +228,7 @@ export class MacroEngineV2 implements IMacroEngine {
       scoreVector['GOLD'] = goldFeatures.pressure;
     }
     
-    let confidence = this.parseConfidence(score.confidence);
-    if (goldFeatures?.flightToQuality) {
-      confidence = Math.min(1.0, confidence * 1.2);
-    }
+    let confidence = this.computeV2Confidence(score, goldFeatures);
     
     const markovEngine = getMarkovEngine();
     const state = markovEngine.getState(
