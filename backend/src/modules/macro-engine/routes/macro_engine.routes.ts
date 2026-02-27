@@ -202,7 +202,15 @@ export async function registerMacroEngineRoutes(fastify: FastifyInstance): Promi
   });
   
   // POST /api/macro-engine/admin/reset — Reset to defaults
-  fastify.post(`${prefix}/admin/reset`, async (req, reply) => {
+  fastify.post(`${prefix}/admin/reset`, { config: { rawBody: true } } as any, async (req, reply) => {
+    const router = getMacroEngineRouter();
+    router.resetOverride();
+    
+    return { ok: true, message: 'Router reset to config defaults' };
+  });
+  
+  // Also support GET for convenience
+  fastify.get(`${prefix}/admin/reset`, async (req, reply) => {
     const router = getMacroEngineRouter();
     router.resetOverride();
     
