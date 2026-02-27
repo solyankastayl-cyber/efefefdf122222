@@ -505,28 +505,30 @@ const FractalTerminal = ({ asset = 'BTC' }) => {
         asset={symbol}
       />
       
-      {/* CHART — Full width, no padding waste */}
+      {/* FORECAST CORE — 70% Chart | 30% Summary */}
       <div className="bg-white border-b border-slate-200">
-        <div className="min-h-[480px]">
-          {isLoading ? (
-            <LoadingSkeleton />
-          ) : (
-            <>
-              {chartMode === 'price' && (
-                <FractalMainChart 
-                  symbol={symbol} 
-                  width={1200} 
-                  height={460}
-                  focus={focus}
-                  focusPack={focusData}
-                  viewMode={viewMode}
-                />
-              )}
-              
-              {chartMode === 'replay' && (
-                <FractalOverlaySection 
-                  symbol={symbol}
-                  focus={focus}
+        <div className="flex">
+          {/* Left: Chart 70% */}
+          <div className="w-[70%] min-h-[480px]">
+            {isLoading ? (
+              <LoadingSkeleton />
+            ) : (
+              <>
+                {chartMode === 'price' && (
+                  <FractalMainChart 
+                    symbol={symbol} 
+                    width={1000} 
+                    height={460}
+                    focus={focus}
+                    focusPack={focusData}
+                    viewMode={viewMode}
+                  />
+                )}
+                
+                {chartMode === 'replay' && (
+                  <FractalOverlaySection 
+                    symbol={symbol}
+                    focus={focus}
                     focusPack={focusData}
                   />
                 )}
@@ -534,7 +536,7 @@ const FractalTerminal = ({ asset = 'BTC' }) => {
                 {chartMode === 'hybrid' && (
                   <FractalHybridChart
                     symbol={symbol}
-                    width={1200}
+                    width={1000}
                     height={460}
                     focus={focus}
                     focusPack={focusData}
@@ -544,26 +546,30 @@ const FractalTerminal = ({ asset = 'BTC' }) => {
                 )}
                 
                 {chartMode === 'macro' && symbol === 'DXY' && (
-                  <div className="flex flex-col">
-                    {/* Chart - Hybrid chart with macro mode */}
-                    <FractalHybridChart
-                      symbol={symbol}
-                      width={1200}
-                      height={320}
-                      focus={focus}
-                      focusPack={focusData}
-                      onPhaseFilter={setPhaseId}
-                      viewMode={viewMode}
-                      mode="macro"
-                    />
-                    {/* Macro Context Panel */}
-                    <MacroPanel focus={focus} />
-                  </div>
+                  <FractalHybridChart
+                    symbol={symbol}
+                    width={1000}
+                    height={460}
+                    focus={focus}
+                    focusPack={focusData}
+                    onPhaseFilter={setPhaseId}
+                    viewMode={viewMode}
+                    mode="macro"
+                  />
                 )}
               </>
             )}
           </div>
+          
+          {/* Right: Forecast Summary 30% */}
+          <div className="w-[30%] border-l border-slate-200 p-4">
+            <ForecastSummaryPanel 
+              focusPack={focusData}
+              focus={focus}
+            />
+          </div>
         </div>
+      </div>
 
       {/* Panels Section */}
       <main className="max-w-7xl mx-auto px-6 py-6">
