@@ -598,26 +598,9 @@ export function drawMacroForecast(
   // === MACRO MODE: Macro is MAIN, Hybrid is HINT (dashed) ===
   // Macro = основная сплошная оранжевая линия
   // Hybrid = второстепенная пунктирная зелёная (подсказка)
+  // Draw ORDER: Macro first (bottom), then Hybrid on top (so dashed line is visible)
   
-  // === 4. HYBRID LINE (green, dashed) - SECONDARY/HINT ===
-  if (hybridData.length > 0) {
-    const points = hybridData.map(p => ({
-      x: dayToX(p.t),
-      y: y(p.price)
-    }));
-    
-    ctx.save();
-    ctx.strokeStyle = 'rgba(34, 197, 94, 0.7)'; // Green
-    ctx.lineWidth = 2;
-    ctx.setLineDash([6, 4]); // Dashed - hint/secondary
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    drawSpline(ctx, points);
-    ctx.stroke();
-    ctx.restore();
-  }
-  
-  // === 5. MACRO LINE (orange, solid, thick) - MAIN LINE ===
+  // === 4. MACRO LINE (orange, solid, thick) - MAIN LINE - draw first ===
   if (macroData.length > 0) {
     const points = macroData.map(p => ({
       x: dayToX(p.t),
@@ -632,6 +615,24 @@ export function drawMacroForecast(
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     // Solid line - no dash
+    drawSpline(ctx, points);
+    ctx.stroke();
+    ctx.restore();
+  }
+  
+  // === 5. HYBRID LINE (green, dashed) - SECONDARY/HINT - draw on top ===
+  if (hybridData.length > 0) {
+    const points = hybridData.map(p => ({
+      x: dayToX(p.t),
+      y: y(p.price)
+    }));
+    
+    ctx.save();
+    ctx.strokeStyle = 'rgba(34, 197, 94, 0.9)'; // Green (brighter)
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8, 6]); // Longer dashes for better visibility
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     drawSpline(ctx, points);
     ctx.stroke();
     ctx.restore();
