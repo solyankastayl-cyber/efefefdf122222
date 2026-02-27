@@ -109,18 +109,28 @@ export class MacroEngineRouter {
     horizon: MacroHorizon;
     hybridEndReturn: number;
     hybridPath?: MacroPathPoint[];
-  }): Promise<MacroPack & { routerInfo: { activeEngine: string; reason: string } }> {
+  }): Promise<MacroPack & { router: { mode: string; chosen: string; fallbackFrom?: string; reason: string } }> {
     const { engine, reason } = await this.getActiveEngine();
     
     const pack = await engine.computePack(params);
     
+    const mode = this.overrideVersion || (this.config.autoSwitch ? 'auto' : this.config.defaultEngine);
+    const isV2Fallback = engine.version === 'v1' && reason.includes('FALLBACK');
+    
     return {
       ...pack,
+      router: {
+        mode,
+        chosen: engine.version,
+        ...(isV2Fallback ? { fallbackFrom: 'v2' } : {}),
+        reason,
+      },
+      // Keep backward compat
       routerInfo: {
         activeEngine: engine.version,
         reason,
       },
-    };
+    } as any;
   }
   
   /**
