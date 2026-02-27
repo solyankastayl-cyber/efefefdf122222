@@ -574,22 +574,6 @@ async function loadDxyPrices(): Promise<{ prices: number[]; dates: string[] } | 
 }
 
 async function loadGoldFromFred(): Promise<Array<{ date: string; value: number }> | null> {
-  const apiKey = process.env.FRED_API_KEY || process.env.MACRO_API_KEY;
-  if (!apiKey) return null;
-  
-  try {
-    const url = `https://api.stlouisfed.org/fred/series/observations?series_id=PCU21222122&api_key=${apiKey}&file_type=json&sort_order=asc`;
-    const response = await fetch(url);
-    const data = await response.json();
-    
-    if (data.observations) {
-      return data.observations
-        .filter((o: any) => o.value !== '.')
-        .map((o: any) => ({ date: o.date, value: parseFloat(o.value) }));
-    }
-    return null;
-  } catch (e) {
-    console.log('[loadGoldFromFred] Error:', (e as any).message);
-    return null;
-  }
+  // Deprecated: gold now loaded from stooq CSV via GoldSeriesAdapter
+  return null;
 }
