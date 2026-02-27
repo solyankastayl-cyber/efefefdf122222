@@ -571,17 +571,100 @@ const FractalTerminal = ({ asset = 'BTC' }) => {
         </div>
       </div>
 
-      {/* Panels Section */}
-      <main className="max-w-7xl mx-auto px-6 py-6">
-        {/* U6 + U7: Scenarios and Risk Box side by side */}
-        {!isLoading && (scenario || sizing) && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            {/* U6: Scenario Box */}
+      {/* Panels Section — DXY Architectural Layout */}
+      <main className="max-w-7xl mx-auto px-6 py-6 space-y-6">
+        
+        {/* LAYER 2: FRACTAL ENGINE BREAKDOWN — Only for DXY */}
+        {symbol === 'DXY' && !isLoading && focusData && (
+          <FractalEngineBreakdown 
+            focusPack={focusData}
+            matches={overlay?.matches}
+          />
+        )}
+        
+        {/* LAYER 3: MACRO LAYER — Only for DXY */}
+        {symbol === 'DXY' && !isLoading && (
+          <MacroLayerPanel 
+            focus={focus}
+            focusPack={focusData}
+          />
+        )}
+        
+        {/* LAYER 4: OUTCOMES + RISK — Only for DXY */}
+        {symbol === 'DXY' && !isLoading && (
+          <OutcomesRiskPanel 
+            scenario={scenario}
+            volatility={volatility}
+            sizing={sizing}
+            focusPack={focusData}
+          />
+        )}
+        
+        {/* LAYER 5: FRACTAL ANALYSIS + TOP MATCHES — For DXY */}
+        {symbol === 'DXY' && !isLoading && focusData && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <FractalAnalysisPanel 
+              forecast={forecast}
+              overlay={overlay}
+              matches={overlay?.matches}
+              focus={focus}
+            />
+            
+            {/* Compact Top Matches Table */}
+            <div className="bg-white rounded-lg border border-slate-200 p-4">
+              <div className="text-xs font-semibold text-slate-500 uppercase mb-3">
+                Top Historical Matches
+              </div>
+              <div className="overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-xs text-slate-400">
+                      <th className="text-left pb-2">Date Range</th>
+                      <th className="text-right pb-2">Similarity</th>
+                      <th className="text-right pb-2">Outcome</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(overlay?.matches || []).slice(0, 4).map((m, i) => (
+                      <tr key={i} className="border-t border-slate-100">
+                        <td className="py-2 text-slate-700">{m.startDate || m.date || '—'}</td>
+                        <td className="py-2 text-right">{((m.similarity || m.score || 0) * 100).toFixed(0)}%</td>
+                        <td className={`py-2 text-right font-medium ${
+                          (m.outcomeReturn || m.outcome || 0) < 0 ? 'text-red-600' : 'text-green-600'
+                        }`}>
+                          {((m.outcomeReturn || m.outcome || 0) * 100).toFixed(1)}%
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* LAYER 6: SYSTEM STATUS / MARKET STRUCTURE — For DXY */}
+        {symbol === 'DXY' && !isLoading && (
+          <SystemStatusPanel
+            phaseSnapshot={terminalData?.phaseSnapshot}
+            consensusPulse={consensusPulse}
+            meta={meta}
+            diagnostics={diagnostics}
+            matchesCount={matchesCount}
+            dataStatus={focusError ? 'error' : focusLoading ? 'loading' : 'real'}
+          />
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        {/* NON-DXY ASSETS (SPX, BTC) — Original layout */}
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        
+        {/* U6 + U7: Scenarios and Risk Box side by side — SPX/BTC only */}
+        {symbol !== 'DXY' && !isLoading && (scenario || sizing) && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {scenario && (
               <ScenarioBox scenario={scenario} asset={symbol} />
             )}
-            
-            {/* U7: Risk Box - показываем для всех активов */}
             <RiskBox 
               scenario={scenario}
               volatility={volatility}
@@ -593,10 +676,9 @@ const FractalTerminal = ({ asset = 'BTC' }) => {
           </div>
         )}
 
-        {/* FRACTAL ANALYSIS + MARKET PHASE ENGINE - Горизонтальный ряд */}
-        {!isLoading && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            {/* Fractal Analysis - валидно для DXY */}
+        {/* FRACTAL ANALYSIS + MARKET PHASE ENGINE — SPX/BTC */}
+        {symbol !== 'DXY' && !isLoading && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {focusData && (
               <FractalAnalysisPanel 
                 forecast={forecast}
@@ -605,24 +687,20 @@ const FractalTerminal = ({ asset = 'BTC' }) => {
                 focus={focus}
               />
             )}
-            
-            {/* Market Phase Engine - только если не DXY (SPX-trained) */}
-            {symbol !== 'DXY' && (
-              <MarketPhaseEngine 
-                tier={meta?.tier || 'TACTICAL'} 
-                horizonStack={horizonStack}
-                currentFocus={focus}
-              />
-            )}
+            <MarketPhaseEngine 
+              tier={meta?.tier || 'TACTICAL'} 
+              horizonStack={horizonStack}
+              currentFocus={focus}
+            />
           </div>
         )}
 
-        {/* BLOCK 74.2: Institutional Consensus Panel - только для SPX/BTC */}
+        {/* BLOCK 74.2: Institutional Consensus Panel — SPX/BTC */}
         {consensus74 && symbol !== 'DXY' && (
           <ConsensusPanel consensus74={consensus74} horizonStack={horizonStack} />
         )}
         
-        {/* STRATEGY CONTROLS — ТОЛЬКО для SPX/BTC, НЕ для DXY */}
+        {/* STRATEGY CONTROLS — SPX/BTC only */}
         {symbol !== 'DXY' && (
           <StrategyControlPanel
             mode={strategyMode}
@@ -634,7 +712,7 @@ const FractalTerminal = ({ asset = 'BTC' }) => {
           />
         )}
         
-        {/* Strategy Summary — ТОЛЬКО для SPX/BTC, НЕ для DXY */}
+        {/* Strategy Summary — SPX/BTC only */}
         {symbol !== 'DXY' && (
           <StrategySummary 
             symbol={symbol} 
@@ -644,7 +722,7 @@ const FractalTerminal = ({ asset = 'BTC' }) => {
           />
         )}
         
-        {/* Forward Performance — ТОЛЬКО для SPX/BTC, НЕ для DXY */}
+        {/* Forward Performance — SPX/BTC only */}
         {symbol !== 'DXY' && (
           <ForwardPerformanceCompact
             symbol={symbol}
@@ -654,15 +732,17 @@ const FractalTerminal = ({ asset = 'BTC' }) => {
           />
         )}
         
-        {/* SYSTEM STATUS PANEL — для всех активов */}
-        <SystemStatusPanel
-          phaseSnapshot={terminalData?.phaseSnapshot}
-          consensusPulse={consensusPulse}
-          meta={meta}
-          diagnostics={diagnostics}
-          matchesCount={matchesCount}
-          dataStatus={focusError ? 'error' : focusLoading ? 'loading' : 'real'}
-        />
+        {/* SYSTEM STATUS PANEL — SPX/BTC */}
+        {symbol !== 'DXY' && (
+          <SystemStatusPanel
+            phaseSnapshot={terminalData?.phaseSnapshot}
+            consensusPulse={consensusPulse}
+            meta={meta}
+            diagnostics={diagnostics}
+            matchesCount={matchesCount}
+            dataStatus={focusError ? 'error' : focusLoading ? 'loading' : 'real'}
+          />
+        )}
       </main>
     </div>
   );
