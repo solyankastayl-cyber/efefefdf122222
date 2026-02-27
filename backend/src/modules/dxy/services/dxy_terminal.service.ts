@@ -391,6 +391,10 @@ export async function buildDxyTerminalPack(
       // Max adjustment: ±3% at extreme macro scores
       macroAdjustmentFactor = macroScoreSigned * 0.03 * macroMultiplier;
       macroDescription = `Hybrid + Macro (${macroPack.regime?.label || 'NEUTRAL'})`;
+      
+      console.log(`[DXY Terminal] Macro applied: scoreSigned=${macroScoreSigned}, multiplier=${macroMultiplier}, adjustment=${macroAdjustmentFactor}`);
+    } else {
+      console.log('[DXY Terminal] Macro skipped: no macroPack or confidence=0');
     }
     
     // Generate macro path with or without adjustment
