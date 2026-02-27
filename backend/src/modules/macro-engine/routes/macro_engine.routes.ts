@@ -419,10 +419,13 @@ export async function registerMacroEngineRoutes(fastify: FastifyInstance): Promi
         }
       }
       
-      // Also load gold proxy data from FRED API directly (not in standard ingest)
-      const goldPoints = await loadGoldFromFred();
-      if (goldPoints && goldPoints.length > 0) {
-        macroData.set('GOLD', goldPoints);
+      // Load GOLD from adapter (real XAUUSD daily data)
+      const { getGoldAdapter: getGold } = await import('../adapters/gold_series.adapter.js');
+      const goldAdapter = getGold();
+      await goldAdapter.load();
+      const goldPrices = goldAdapter.getPriceData();
+      if (goldPrices.length > 0) {
+        macroData.set('GOLD', goldPrices);
       }
       
       // Run calibration
@@ -434,12 +437,29 @@ export async function registerMacroEngineRoutes(fastify: FastifyInstance): Promi
         macroData,
       });
       
+      // Sanity checks
+      const sanity = runSanityChecks(result);
+      
       return {
         ok: true,
         symbol,
+        createdVersionId: `weights_${new Date().toISOString().slice(0, 10).replace(/-/g, '_')}`,
+        windowDays: result.windowDays || 1260,
+        stepDays: result.stepDays || 30,
         asOf: result.asOf,
         aggregateCorr: result.aggregateCorr,
         qualityScore: result.qualityScore,
+        topWeights: (result.components || [])
+          .filter((c: any) => c.weight > 0)
+          .sort((a: any, b: any) => b.weight - a.weight)
+          .map((c: any) => ({
+            key: c.key,
+            weight: Math.round(c.weight * 10000) / 10000,
+            lagDays: c.lagDays,
+            corr: Math.round(c.corr * 10000) / 10000,
+          })),
+        sanity,
+        status: sanity.pass ? 'ACTIVE' : (sanity.sumWeightsOk && sanity.maxWeightOk ? 'DEGRADED' : 'REJECTED'),
         components: result.components,
       };
     } catch (e) {
