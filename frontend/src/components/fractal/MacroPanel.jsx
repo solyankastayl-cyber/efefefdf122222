@@ -144,11 +144,13 @@ const styles = `
   border-radius: 4px;
   font-size: 13px;
   font-weight: 600;
+  border: none;
+  text-decoration: none;
 }
 
 .regimeTag.bullish { background: #d1fae5; color: #059669; }
 .regimeTag.bearish { background: #fee2e2; color: #dc2626; }
-.regimeTag.neutral { background: #fef3c7; color: #d97706; }
+.regimeTag.neutral { background: #fef3c7; color: #d97706; border: none; }
 
 .guardTag {
   font-weight: 600;
