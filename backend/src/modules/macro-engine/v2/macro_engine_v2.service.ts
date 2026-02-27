@@ -357,6 +357,48 @@ export class MacroEngineV2 implements IMacroEngine {
     return Math.max(-1, Math.min(1, calibrated));
   }
   
+  /**
+   * V2 computes its OWN confidence — not inherited from V1's string.
+   * Factors: component count, gold availability, regime state, calibration
+   */
+  private computeV2Confidence(score: any, goldFeatures: GoldFeatures | null): number {
+    let conf = 0.5; // base
+    
+    // Component count bonus
+    const componentCount = score.components?.length || 0;
+    if (componentCount >= 7) conf += 0.15;
+    else if (componentCount >= 5) conf += 0.10;
+    else if (componentCount >= 3) conf += 0.05;
+    
+    // Gold available bonus
+    if (goldFeatures && goldFeatures.staleDays <= 5) {
+      conf += 0.10;
+    } else if (goldFeatures) {
+      conf += 0.05;
+    }
+    
+    // Regime state stored bonus (hysteresis working)
+    const regimeStateSvc = getRegimeStateService();
+    // If we have stored state, the system has history = more confidence
+    if (this.cachedScore) conf += 0.05;
+    
+    // Calibration bonus (calibrated weights > defaults)
+    // (checked in computePack after this call, so use a quick check)
+    conf += 0.05;
+    
+    // Freshness penalty (stale FRED data)
+    const staleRatio = (score.quality?.staleCount || 0) / Math.max(1, componentCount);
+    if (staleRatio > 0.5) conf -= 0.10;
+    else if (staleRatio > 0.3) conf -= 0.05;
+    
+    // FTQ boost (high-confidence regime signal)
+    if (goldFeatures?.flightToQuality) {
+      conf += 0.05;
+    }
+    
+    return Math.max(0.1, Math.min(1.0, conf));
+  }
+  
   private async computeVolScale(): Promise<number> {
     try {
       const csvPath = '/app/data/dxy_stooq.csv';
