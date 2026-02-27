@@ -176,6 +176,20 @@ export interface TerminalMacroPack {
   regime: MacroRegime;
   overlay: MacroOverlay;
   updatedAt: string;
+  // Macro path with adjustment
+  path?: TerminalPathPoint[];
+  adjustment?: {
+    scoreSigned: number;
+    maxAdjustment: number;
+    description: string;
+    deltaReturnEnd?: number;
+  };
+  // Band reshaping (v2)
+  reshapedBands?: {
+    p10: TerminalPathPoint[];
+    p90: TerminalPathPoint[];
+    reshapeReason: string;
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════

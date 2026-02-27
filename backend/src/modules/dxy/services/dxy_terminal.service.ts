@@ -47,6 +47,9 @@ import { buildMacroOverlay } from './macro_overlay.service.js';
 import { computeMacroScore } from '../../dxy-macro-core/services/macro_score.service.js';
 import { buildMacroContext } from '../../dxy-macro-core/services/macro_context.service.js';
 
+// B2+: Band reshaping from v2 service
+import { reshapeBands } from './dxy_macro_v2.service.js';
+
 // ═══════════════════════════════════════════════════════════════
 // HELPER: Generate match ID
 // ═══════════════════════════════════════════════════════════════
@@ -428,6 +431,41 @@ export async function buildDxyTerminalPack(
   }
   
   // Build finalMacroPack - always include path
+  // ═══════════════════════════════════════════════════════════════
+  // 6.6) BAND RESHAPING (v2 feature)
+  // ═══════════════════════════════════════════════════════════════
+  
+  let reshapedBands: { p10: TerminalPathPoint[]; p90: TerminalPathPoint[]; reshapeReason: string } | undefined;
+  
+  if (macroPack && synthetic.bands) {
+    const macroScoreSigned = macroPack.scoreSigned || 0;
+    const dominantRegime = macroPack.regime?.label || 'NEUTRAL';
+    
+    // Only reshape if we have significant macro signal
+    if (Math.abs(macroScoreSigned) > 0.1 || dominantRegime === 'STRESS') {
+      // Convert terminal bands to PathPoint format for reshaping
+      const bandInput = {
+        p10: synthetic.bands.p10.map(p => ({ t: p.t, price: p.value, ret: p.pct })),
+        p50: synthetic.bands.p50.map(p => ({ t: p.t, price: p.value, ret: p.pct })),
+        p90: synthetic.bands.p90.map(p => ({ t: p.t, price: p.value, ret: p.pct })),
+      };
+      
+      // Apply band reshaping based on macro regime
+      const reshaped = reshapeBands(bandInput, macroScoreSigned, dominantRegime);
+      
+      // Convert back to terminal format
+      reshapedBands = {
+        p10: reshaped.p10.map(p => ({ t: p.t, value: p.price, pct: p.ret })),
+        p90: reshaped.p90.map(p => ({ t: p.t, value: p.price, pct: p.ret })),
+        reshapeReason: macroScoreSigned < 0 || dominantRegime === 'STRESS' 
+          ? 'Downside widened (negative macro or STRESS regime)'
+          : 'Upside widened (positive macro)',
+      };
+      
+      console.log(`[DXY Terminal] Band reshaping applied: ${reshapedBands.reshapeReason}`);
+    }
+  }
+  
   const finalMacroPack = {
     ...(macroPack || {}),
     path: macroPath,
@@ -435,7 +473,9 @@ export async function buildDxyTerminalPack(
       scoreSigned: macroPack?.scoreSigned || 0,
       maxAdjustment: macroAdjustmentFactor,
       description: macroDescription,
+      deltaReturnEnd: macroAdjustmentFactor,
     },
+    reshapedBands,
   };
   
   // ═══════════════════════════════════════════════════════════════

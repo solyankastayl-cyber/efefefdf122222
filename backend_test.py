@@ -11,7 +11,7 @@ from datetime import datetime
 import time
 
 class FractalAPITester:
-    def __init__(self, base_url="https://fractal-deploy-1.preview.emergentagent.com"):
+    def __init__(self, base_url="https://markov-macro-preview.preview.emergentagent.com"):
         self.base_url = base_url
         self.tests_run = 0
         self.tests_passed = 0
@@ -153,10 +153,49 @@ class FractalAPITester:
             "/api/ae/terminal"
         )
         
-        # Test 8: DXY Macro endpoint
+        # Test 8: DXY Macro Core endpoints - NEW
         self.test_endpoint(
-            "DXY Macro Data",
-            "/api/fractal/dxy/macro"
+            "DXY Macro Decomposition - Component Weights",
+            "/api/dxy-macro-core/decomposition"
+        )
+        
+        # Test 9: DXY Macro Guard
+        self.test_endpoint(
+            "DXY Macro Guard Current Level",
+            "/api/dxy-macro-core/guard/current"
+        )
+        
+        # Test 10: DXY Terminal with Macro Path and Adjustment
+        success, terminal_data = self.test_endpoint(
+            "DXY Terminal with Macro Path and Adjustment",
+            "/api/fractal/dxy/terminal?focus=30d"
+        )
+        
+        # Additional validation for terminal data
+        if success and terminal_data:
+            has_macro = terminal_data.get("macro") is not None
+            has_adjustment = False
+            has_path = False
+            
+            if has_macro:
+                macro_data = terminal_data.get("macro", {})
+                has_adjustment = "adjustment" in macro_data
+                has_path = "path" in macro_data and len(macro_data.get("path", [])) > 0
+            
+            print(f"   📊 Macro data present: {has_macro}")
+            print(f"   📊 Adjustment data: {has_adjustment}")
+            print(f"   📊 Macro path: {has_path}")
+        
+        # Test 11: DXY Macro Score with Evidence
+        self.test_endpoint(
+            "DXY Macro Score with Evidence",
+            "/api/dxy-macro-core/score/evidence"
+        )
+        
+        # Test 12: Liquidity State
+        self.test_endpoint(
+            "Liquidity State (for DxyMacroTab)",
+            "/api/liquidity/state"
         )
         
         return self.generate_report()

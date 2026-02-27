@@ -502,6 +502,22 @@ async function main() {
   await app.register(adminAuthRoutes, { prefix: '/api/admin' });
   console.log('[Fractal] ✅ Admin Auth registered');
   
+  // ═══════════════════════════════════════════════════════════════
+  // INDEX ENGINE V2 — Unified API for all indices
+  // ═══════════════════════════════════════════════════════════════
+  console.log('[Fractal] Registering Index Engine V2...');
+  const { registerIndexEngineRoutes } = await import('./modules/index-engine/routes/index.routes.js');
+  await registerIndexEngineRoutes(app);
+  console.log('[Fractal] ✅ Index Engine V2 registered at /api/v2/index/*');
+  
+  // ═══════════════════════════════════════════════════════════════
+  // MACRO ENGINE (V1 + V2 with Router)
+  // ═══════════════════════════════════════════════════════════════
+  console.log('[Fractal] Registering Macro Engine (V1/V2)...');
+  const { registerMacroEngineRoutes } = await import('./modules/macro-engine/routes/macro_engine.routes.js');
+  await registerMacroEngineRoutes(app);
+  console.log('[Fractal] ✅ Macro Engine registered at /api/macro-engine/*');
+  
   // Graceful shutdown
   const shutdown = async (signal: string) => {
     console.log(`[Fractal] Received ${signal}, shutting down...`);
@@ -538,6 +554,12 @@ async function main() {
     console.log('  POST /api/fractal/admin/autolearn/run');
     console.log('  POST /api/fractal/admin/autolearn/monitor');
     console.log('  GET  /api/fractal/admin/dataset');
+    console.log('');
+    console.log('📦 Index Engine V2:');
+    console.log('  GET  /api/v2/index/:symbol/pack');
+    console.log('  GET  /api/v2/index/:symbol/macro');
+    console.log('  GET  /api/v2/regime/current');
+    console.log('  GET  /api/v2/regime/transition-matrix');
     console.log('');
   } catch (err) {
     console.error('[Fractal] Fatal error:', err);

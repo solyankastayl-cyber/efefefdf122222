@@ -21,6 +21,8 @@ import { buildCreditContext } from '../services/credit_context.service.js';
 import { validateStability, validateEpisodes } from '../services/macro_stability_validation.service.js';
 import { getDefaultMacroSeries, MACRO_SERIES_REGISTRY } from '../data/macro_sources.registry.js';
 import { checkFredHealth, hasFredApiKey } from '../ingest/fred.client.js';
+import { analyzeComponentCorrelations, DEFAULT_OPTIMIZED_WEIGHTS, pearsonCorrelation } from '../services/macro_decomposition.service.js';
+import { getMacroSeriesPoints } from '../ingest/macro.ingest.service.js';
 
 // P3: Import lag profiles
 import { getAllLagProfiles } from '../../macro-asof/asof.service.js';
@@ -329,4 +331,168 @@ export async function registerMacroRoutes(fastify: FastifyInstance): Promise<voi
   });
   
   console.log(`[Macro] Routes registered at ${prefix}/* (B5 Validation)`);
+  
+  // ─────────────────────────────────────────────────────────────
+  // DECOMPOSITION: GET /decomposition — Component correlation analysis
+  // Roadmap tasks: Декомпозиция, корреляции, веса, шум, лаг
+  // ─────────────────────────────────────────────────────────────
+  
+  fastify.get(`${prefix}/decomposition`, async (req, reply) => {
+    // Return current optimized weights and component info
+    const contexts = await buildAllMacroContexts();
+    
+    const components = contexts.map(ctx => ({
+      seriesId: ctx.seriesId,
+      displayName: ctx.displayName,
+      role: ctx.role,
+      regime: ctx.regime,
+      pressure: ctx.pressure,
+      optimizedWeight: DEFAULT_OPTIMIZED_WEIGHTS[ctx.seriesId] ?? 0.05,
+    }));
+    
+    // Sort by weight descending
+    components.sort((a, b) => b.optimizedWeight - a.optimizedWeight);
+    
+    return {
+      ok: true,
+      note: 'Component decomposition with correlation-optimized weights',
+      totalComponents: components.length,
+      components,
+      weightingMethod: 'weight_i ∝ |corr(component_i, DXY_forward)|',
+      noiseThreshold: 0.03,
+      lagAnalysis: {
+        testedLags: [10, 30, 60, 120],
+        note: 'Optimal lag selected per component based on max |corr|',
+      },
+      defaultWeights: DEFAULT_OPTIMIZED_WEIGHTS,
+    };
+  });
+  
+  // NOTE: /guard/current is registered in guard_hysteresis.routes.ts
+  
+  // ─────────────────────────────────────────────────────────────
+  // CORRELATION ANALYSIS: GET /correlation-analysis
+  // Run actual correlation analysis with DXY forward returns
+  // ─────────────────────────────────────────────────────────────
+  
+  fastify.get(`${prefix}/correlation-analysis`, async (req, reply) => {
+    const horizonDays = parseInt((req.query as any)?.horizon || '30');
+    
+    // Get DXY prices
+    const { getAllDxyCandles } = await import('../../dxy/services/dxy-chart.service.js');
+    const dxyCandles = await getAllDxyCandles();
+    
+    if (dxyCandles.length < 200) {
+      return { ok: false, error: 'Not enough DXY data for correlation analysis' };
+    }
+    
+    // Compute DXY forward returns
+    const dxyPrices = dxyCandles.map(c => c.close);
+    const dxyDates = dxyCandles.map(c => c.date);
+    
+    // Forward returns at different lags
+    const computeForwardReturns = (prices: number[], lag: number) => {
+      const rets: number[] = [];
+      for (let i = 0; i < prices.length - lag; i++) {
+        rets.push((prices[i + lag] - prices[i]) / prices[i]);
+      }
+      return rets;
+    };
+    
+    const dxyFwd10 = computeForwardReturns(dxyPrices, 10);
+    const dxyFwd30 = computeForwardReturns(dxyPrices, 30);
+    const dxyFwd60 = computeForwardReturns(dxyPrices, 60);
+    const dxyFwd120 = computeForwardReturns(dxyPrices, 120);
+    
+    // Get macro series data
+    const seriesIds = ['FEDFUNDS', 'CPIAUCSL', 'CPILFESL', 'UNRATE', 'M2SL', 'T10Y2Y', 'PPIACO'];
+    const correlations: any[] = [];
+    
+    for (const seriesId of seriesIds) {
+      const points = await getMacroSeriesPoints(seriesId);
+      if (points.length < 100) continue;
+      
+      // Align macro data with DXY dates
+      const macroMap = new Map(points.map(p => [p.date, p.value]));
+      const alignedMacro: number[] = [];
+      
+      for (const date of dxyDates.slice(0, dxyFwd30.length)) {
+        // Find closest macro date (monthly to daily alignment)
+        const macroDate = date.slice(0, 7) + '-01'; // Convert to monthly
+        let val = macroMap.get(macroDate);
+        if (!val) {
+          // Try exact date or closest
+          val = macroMap.get(date) || 0;
+        }
+        alignedMacro.push(val || 0);
+      }
+      
+      if (alignedMacro.filter(v => v !== 0).length < 50) continue;
+      
+      // Calculate correlations at different lags
+      const corr10 = pearsonCorrelation(alignedMacro.slice(0, dxyFwd10.length), dxyFwd10);
+      const corr30 = pearsonCorrelation(alignedMacro.slice(0, dxyFwd30.length), dxyFwd30);
+      const corr60 = pearsonCorrelation(alignedMacro.slice(0, dxyFwd60.length), dxyFwd60);
+      const corr120 = pearsonCorrelation(alignedMacro.slice(0, dxyFwd120.length), dxyFwd120);
+      
+      // Find optimal lag
+      const absCorrs = { lag10: Math.abs(corr10), lag30: Math.abs(corr30), lag60: Math.abs(corr60), lag120: Math.abs(corr120) };
+      const maxLag = Object.entries(absCorrs).sort((a, b) => b[1] - a[1])[0];
+      const optimalLag = parseInt(maxLag[0].replace('lag', ''));
+      const optimalCorr = maxLag[0] === 'lag10' ? corr10 : maxLag[0] === 'lag30' ? corr30 : maxLag[0] === 'lag60' ? corr60 : corr120;
+      
+      const isNoise = Math.abs(optimalCorr) < 0.03;
+      
+      correlations.push({
+        seriesId,
+        displayName: MACRO_SERIES_REGISTRY.find(s => s.seriesId === seriesId)?.displayName || seriesId,
+        correlations: {
+          lag10: Math.round(corr10 * 10000) / 10000,
+          lag30: Math.round(corr30 * 10000) / 10000,
+          lag60: Math.round(corr60 * 10000) / 10000,
+          lag120: Math.round(corr120 * 10000) / 10000,
+        },
+        optimalLag,
+        optimalCorrelation: Math.round(optimalCorr * 10000) / 10000,
+        absCorrelation: Math.round(Math.abs(optimalCorr) * 10000) / 10000,
+        isNoise,
+        recommendation: isNoise ? 'EXCLUDE (noise)' : Math.abs(optimalCorr) > 0.1 ? 'STRONG SIGNAL' : 'WEAK SIGNAL',
+      });
+    }
+    
+    // Sort by |corr| descending
+    correlations.sort((a, b) => b.absCorrelation - a.absCorrelation);
+    
+    // Calculate optimized weights
+    const nonNoise = correlations.filter(c => !c.isNoise);
+    const totalAbsCorr = nonNoise.reduce((sum, c) => sum + c.absCorrelation, 0);
+    
+    const optimizedWeights: Record<string, number> = {};
+    for (const c of correlations) {
+      if (c.isNoise) {
+        optimizedWeights[c.seriesId] = 0;
+      } else {
+        optimizedWeights[c.seriesId] = totalAbsCorr > 0 
+          ? Math.round((c.absCorrelation / totalAbsCorr) * 10000) / 10000 
+          : 0;
+      }
+    }
+    
+    return {
+      ok: true,
+      meta: {
+        dxyDataPoints: dxyCandles.length,
+        analysisHorizon: horizonDays,
+        lagsAnalyzed: [10, 30, 60, 120],
+        noiseThreshold: 0.03,
+      },
+      correlations,
+      optimizedWeights,
+      summary: {
+        strongSignals: correlations.filter(c => c.recommendation === 'STRONG SIGNAL').map(c => c.seriesId),
+        weakSignals: correlations.filter(c => c.recommendation === 'WEAK SIGNAL').map(c => c.seriesId),
+        excludedNoise: correlations.filter(c => c.isNoise).map(c => c.seriesId),
+      },
+    };
+  });
 }

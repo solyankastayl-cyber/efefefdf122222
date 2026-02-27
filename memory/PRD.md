@@ -1,115 +1,106 @@
-# Fractal Platform PRD v2
+# Fractal Platform PRD v9
 
-## Original Problem Statement
-Развернуть код из репозитория https://github.com/solyankastayl-cyber/343434343
-- DXY фракталы - основной модуль для доработки
-- SPX и BTC логика в заморозке
-- Macro API key: 2c0bf55cfd182a3a4d2e4fd017a622f7
+## Architecture Overview
 
-## Architecture (2026-02-27)
+V2 дополняет V1, не заменяет. V1 остаётся как baseline/fallback.
 
-### Backend Stack
-- **Python Proxy** (8001) → **TypeScript Fastify** (8002)
-- **MongoDB** (27017) for data storage
-- **FRED API** integration for macro data
-
-### Frontend Stack
-- **React** with lazy loading
-- **Canvas** for chart rendering
-- **WebSocket** for real-time updates
-
-### Hierarchy of Layers
-1. **Synthetic** = ModelForecast(current_state) — pure AI model
-2. **Replay** = BestHistoricalMatchPath — historical anchor
-3. **Hybrid** = w1 * Synthetic + w2 * Replay — stabilized blend
-4. **Macro** = Hybrid + MacroBiasAdjustment — context correction
-
-## What's Been Implemented (2026-02-27)
-
-### Deployment Complete ✅
-- Cloned repository and configured environment
-- Set up FRED_API_KEY and MACRO_API_KEY
-- Fixed FractalChartCanvas.jsx syntax errors
-- Removed 7d marker for 365D horizon
-
-### DXY Page Architectural Rebuild ✅
-New layout following blueprint:
-1. **FORECAST CORE** - 70% Chart | 30% Summary Panel
-2. **FRACTAL ENGINE BREAKDOWN** - Historical Anchor + Hybrid Construction
-3. **MACRO LAYER** - Regime State + Macro Impact + Macro Drivers
-4. **OUTCOMES + RISK** - Distribution + Risk Context
-5. **FRACTAL ANALYSIS + TOP MATCHES** - Compact tables
-6. **SYSTEM STATUS** - Phase/Context info
-
-### New Components Created
-- `/app/frontend/src/components/fractal/ForecastSummaryPanel.jsx`
-- `/app/frontend/src/components/fractal/FractalEngineBreakdown.jsx`
-- `/app/frontend/src/components/fractal/MacroLayerPanel.jsx`
-- `/app/frontend/src/components/fractal/OutcomesRiskPanel.jsx`
-
-### Macro Integration ✅
-- 8 FRED series loaded (FEDFUNDS, CPI, UNRATE, etc.)
-- scoreSigned = -0.069 (EASING regime)
-- Macro adjustment visible: Hybrid vs Macro difference ~0.18%
-
-## Key API Endpoints
-- `GET /api/health` - Health check
-- `GET /api/fractal/dxy/terminal?focus=30d` - DXY Terminal
-- `GET /api/fractal/spx?focus=30d` - SPX data
-- `GET /api/dxy-macro-core/score` - Macro score
-- `GET /api/ae/terminal` - AE State
-
-## Key Routes
-- `/fractal/dxy` - DXY Fractal Page (NEW LAYOUT)
-- `/spx` - SPX Terminal
-- `/bitcoin` - BTC Terminal
-- `/admin/fractal` - Admin Panel
-
-## Data Status
-- DXY: 13,366 candles (1973-2026)
-- SPX: 19,000+ candles
-- BTC: 5,600+ candles
-- FRED: 8 macro series loaded
-
-## Next Action Items (P0)
-1. Test new layout with different horizons (7D, 90D, 180D, 365D)
-2. Fine-tune Macro impact coefficient (0.03 → 0.05)
-3. Load remaining FRED series
-
-## Backlog (P1/P2)
-- P1: WebSocket stabilization
-- P1: Regime timeline mini-chart
-- P2: Scenario influence map
-
-## Update 2026-02-27 v2
-
-### Macro Formula Calibration ✅
-- Base sensitivity: 0.03 → **0.05** (+67%)
-- Added regime-specific boost factors:
-  - EASING: 1.0x
-  - TIGHTENING: 1.2x
-  - STRESS: 1.5x
-  - PIVOT: 1.3x
-  - NEUTRAL: 0.8x
-
-### Current Results:
 ```
-Macro = Hybrid + (scoreSigned × 0.05 × regimeBoost × confidenceMultiplier)
-
-Example (EASING regime):
-scoreSigned = -0.062
-boost = 1.0
-multiplier = 0.86
-adjustment = -0.062 × 0.05 × 1.0 × 0.86 = -0.27%
+┌─────────────────────────────────────────────────────────────┐
+│                    MACRO ENGINE ROUTER                      │
+│         (auto-switch based on V2 readiness)                 │
+├─────────────────────────────────────────────────────────────┤
+│    ┌────────────────────┴──────────────────────┐            │
+│    ▼                                           ▼            │
+│ ┌──────────┐                          ┌──────────────────┐  │
+│ │   V1     │                          │      V2          │  │
+│ │ Linear   │                          │ Markov + State   │  │
+│ │ Stable   │                          │ + Calibration    │  │
+│ │ (frozen) │                          │ + Gold + volScale│  │
+│ └──────────┘                          └──────────────────┘  │
+│                                        ▲    ▲    ▲          │
+│                                ┌───────┘    │    └──────┐   │
+│                          ┌─────────┐ ┌──────────┐ ┌────────┐│
+│                          │ Regime  │ │ Rolling  │ │VolScale││
+│                          │ State   │ │ Calibra- │ │Service ││
+│                          │(MongoDB)│ │ tion Svc │ │ (CSV)  ││
+│                          └─────────┘ └──────────┘ └────────┘│
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### Visible Differences:
-- 30D: Hybrid +0.09% → Macro -0.18% (diff -0.27%)
-- 90D: Hybrid -5.77% → Macro -6.04% (diff -0.27%)
-- 180D: Hybrid -8.02% → Macro -8.29% (diff -0.27%)
-- 365D: Hybrid -11.47% → Macro -11.74% (diff -0.27%)
+## Current Status (2026-02-27)
 
-### Mode Button Fix
-- Added console.log for debugging Macro tab click
-- State update confirmed working (onClick fires correctly)
-- Visual update may require page reload or React reconciliation check
+```
+Active Engine: V1 (baseline — V2 auto-switch blocked by confidence 0.48 < 0.6)
+V2 Health: OK (warnings: 6 stale FRED series, expected)
+V2 State: DB-backed with hysteresis (stored in macro_regime_states)
+V2 Weights: Calibrated (stored in macro_weights_versions)
+V2 VolScale: 0.929 (DXY realized vol / long-term vol)
+Gold: Working via PCU21222122 (PPI proxy, FTQ active)
+```
+
+## Completed Work
+
+### V1 Fixes and Optimization (DONE)
+- [x] Fixed Replay/Hybrid/Macro modes
+- [x] Real FRED data integration
+- [x] Correlation analysis with optimized weights
+- [x] V1 frozen as baseline
+
+### V2 Phase 1 — Skeleton (DONE)
+- [x] Parallel V1/V2 architecture
+- [x] Router with auto-switch logic
+- [x] Markov chain regime persistence
+- [x] V2 API contracts, Index orchestrator
+
+### V2 Phase 2 — Dynamic State (DONE)
+- [x] P1: RegimeStateService (DB-backed state + hysteresis) integrated
+- [x] P2: RollingCalibrationService (adaptive weights) integrated
+- [x] P3: Volatility Adaptation (volScale) from DXY price data
+- [x] Gold adapter working (PCU21222122 FRED proxy)
+- [x] State/calibration API endpoints (state/current, state/history, calibration/weights, calibration/history, calibration/run)
+- [x] V2 health check improved
+- [x] Testing: 33/33 tests passed (iterations 4+5)
+
+### Frontend V2 Integration (DONE)
+- [x] MacroLayerPanel refactored to use unified V2 API
+- [x] Engine version badge (V2), calibration badge, volScale badge
+- [x] Regime State card (dominant, confidence, persistence, entropy)
+- [x] Guard Level card (level, score, reason codes)
+- [x] Macro Impact card (hybrid base, delta, adjusted)
+- [x] Top Drivers card (key, contribution, weight)
+
+## API Endpoints
+
+### Router
+- GET /api/macro-engine/:asset/pack — Main (uses router)
+- GET /api/macro-engine/:asset/compare — V1 vs V2
+- GET /api/macro-engine/status — Router status
+
+### Direct
+- GET /api/macro-engine/v1/:asset/pack — Direct V1
+- GET /api/macro-engine/v2/:asset/pack — Direct V2
+
+### V2 State
+- GET /api/macro-engine/v2/state/current
+- GET /api/macro-engine/v2/state/history
+
+### V2 Calibration
+- GET /api/macro-engine/v2/calibration/weights
+- GET /api/macro-engine/v2/calibration/history
+- POST /api/macro-engine/v2/calibration/run
+
+### Admin
+- POST /api/macro-engine/admin/force-engine
+- POST /api/macro-engine/admin/reset
+
+## Next Steps
+
+### P1 — Remaining
+- [ ] Scheduled job for periodic recalibration (cron-like)
+- [ ] Better gold data source (actual XAUUSD from AlphaVantage/Polygon)
+- [ ] Admin toggle V1/V2 in frontend
+
+### P2 — Future
+- [ ] AE/S-Brain V2 Development
+- [ ] SPX & BTC Standardization to V2
+- [ ] V2 Backtesting Framework
