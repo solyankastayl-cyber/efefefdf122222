@@ -23,7 +23,7 @@ import {
 import { getMarkovEngine } from '../../index-engine/services/macro_layer/macro_markov.service.js';
 import { computeAllHorizonImpacts, computeVolatilityScale } from '../../index-engine/services/macro_layer/macro_impact.service.js';
 import { computeMacroScore } from '../../dxy-macro-core/services/macro_score.service.js';
-import { getGoldAdapter, GoldFeatures } from '../adapters/gold_series.adapter.js';
+import { getGoldAdapter, GoldFeatures, GOLD_SERIES_CONFIG } from '../adapters/gold_series.adapter.js';
 import { getRegimeStateService } from './state/regime_state.service.js';
 import { getRollingCalibrationService } from './calibration/rolling_calibration.service.js';
 import * as fs from 'fs';
