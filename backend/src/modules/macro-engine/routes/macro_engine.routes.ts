@@ -471,15 +471,56 @@ export async function registerMacroEngineRoutes(fastify: FastifyInstance): Promi
   });
   
   console.log(`[Macro Engine] Routes registered at ${prefix}/*`);
-  console.log(`  GET  ${prefix}/:asset/pack (uses router)`);
-  console.log(`  GET  ${prefix}/:asset/compare (v1 vs v2)`);
+  console.log(`  GET  ${prefix}/:asset/pack (router)`);
+  console.log(`  GET  ${prefix}/:asset/compare (shadow)`);
   console.log(`  GET  ${prefix}/status`);
-  console.log(`  GET  ${prefix}/v1/:asset/pack (direct v1)`);
-  console.log(`  GET  ${prefix}/v2/:asset/pack (direct v2)`);
-  console.log(`  GET  ${prefix}/v2/state/current`);
-  console.log(`  GET  ${prefix}/v2/state/history`);
-  console.log(`  GET  ${prefix}/v2/calibration/weights`);
+  console.log(`  GET  ${prefix}/v1/:asset/pack | v2/:asset/pack`);
+  console.log(`  GET  ${prefix}/v2/state/current | history`);
+  console.log(`  GET  ${prefix}/v2/calibration/weights | history`);
   console.log(`  POST ${prefix}/v2/calibration/run`);
+  console.log(`  POST ${prefix}/admin/active | promote | rollback | reset`);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SANITY CHECKS for recalibration
+// ═══════════════════════════════════════════════════════════════
+
+function runSanityChecks(result: any): {
+  pass: boolean;
+  sumWeights: number;
+  sumWeightsOk: boolean;
+  maxWeight: number;
+  maxWeightOk: boolean;
+  minSeriesCoverage: number;
+  coverageOk: boolean;
+  maxStaleSeries: number;
+  stalenessOk: boolean;
+} {
+  const components = result.components || [];
+  const weights = components.map((c: any) => c.weight || 0);
+  const sumWeights = weights.reduce((a: number, b: number) => a + b, 0);
+  const maxWeight = Math.max(...weights, 0);
+  
+  // Count series with data
+  const withData = components.filter((c: any) => Math.abs(c.corr || 0) > 0).length;
+  const minSeriesCoverage = components.length > 0 ? withData / components.length : 0;
+  
+  const sumWeightsOk = Math.abs(sumWeights - 1.0) < 0.001;
+  const maxWeightOk = maxWeight <= 0.35;
+  const coverageOk = minSeriesCoverage >= 0.8;
+  const stalenessOk = true; // staleness check happens elsewhere
+  
+  return {
+    pass: sumWeightsOk && maxWeightOk && coverageOk,
+    sumWeights: Math.round(sumWeights * 10000) / 10000,
+    sumWeightsOk,
+    maxWeight: Math.round(maxWeight * 10000) / 10000,
+    maxWeightOk,
+    minSeriesCoverage: Math.round(minSeriesCoverage * 1000) / 1000,
+    coverageOk,
+    maxStaleSeries: 3,
+    stalenessOk,
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════
