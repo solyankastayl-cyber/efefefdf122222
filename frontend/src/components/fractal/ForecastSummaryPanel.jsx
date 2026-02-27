@@ -38,41 +38,53 @@ const ForecastSummaryPanel = ({ focusPack, focus }) => {
     );
   }
 
-  const { core, synthetic, replay, hybrid, macro, meta } = focusPack;
+  // Extract from focusPack - check both direct and nested structures
+  const unifiedPath = focusPack.unifiedPath || {};
+  const forecast = focusPack.forecast || {};
+  const meta = focusPack.meta || {};
   
-  // Current price from core
-  const currentPrice = core?.anchorPrice || core?.currentPrice || 0;
+  // Current price from unifiedPath or forecast
+  const currentPrice = unifiedPath.anchorPrice || forecast.currentPrice || focusPack.currentPrice || 0;
   
-  // Extract returns
-  const syntheticReturn = synthetic?.endReturn || synthetic?.expectedReturn || 0;
-  const replayReturn = replay?.path?.[replay.path.length - 1]?.pct || replay?.endReturn || 0;
-  const hybridReturn = hybrid?.path?.[hybrid.path.length - 1]?.pct || 0;
+  // Extract returns from paths
+  const syntheticPath = unifiedPath.syntheticPath || [];
+  const replayPath = unifiedPath.replayPath || [];
+  const hybridPath = unifiedPath.hybridPath || [];
+  const macroPath = unifiedPath.macroPath || [];
+  
+  // Get end returns (last point pct)
+  const syntheticReturn = syntheticPath.length > 0 
+    ? (syntheticPath[syntheticPath.length - 1]?.pct || 0) 
+    : (forecast.expectedReturn || 0);
+  const replayReturn = replayPath.length > 0 
+    ? (replayPath[replayPath.length - 1]?.pct || 0) 
+    : 0;
+  const hybridReturn = hybridPath.length > 0 
+    ? (hybridPath[hybridPath.length - 1]?.pct || 0) 
+    : 0;
   
   // Macro adjustment
-  const macroAdjustment = macro?.adjustment?.maxAdjustment || 0;
-  const macroReturn = macro?.path?.[macro.path.length - 1]?.pct || hybridReturn;
-  const macroRegime = macro?.adjustment?.description || 'No macro data';
+  const macroAdjustment = unifiedPath.macroAdjustment?.maxAdjustment || 0;
+  const macroReturn = macroPath.length > 0 
+    ? (macroPath[macroPath.length - 1]?.pct || 0) 
+    : hybridReturn;
+  const macroRegime = unifiedPath.macroAdjustment?.description || 'No macro data';
   
   // Final forecast (macro-adjusted if available)
   const finalForecast = macroAdjustment !== 0 ? macroReturn : hybridReturn;
   
-  // Confidence
-  const confidence = meta?.confidence || core?.confidence || 0;
+  // Confidence from meta
+  const confidence = meta?.confidence || forecast?.confidence || 0.5;
   const confidenceLabel = confidence >= 0.7 ? 'High' : confidence >= 0.4 ? 'Medium' : 'Low';
   const confidenceColor = confidence >= 0.7 ? 'text-green-600' : confidence >= 0.4 ? 'text-amber-600' : 'text-slate-500';
   
   // Format helpers
   const formatPrice = (p) => p ? `$${p.toFixed(2)}` : '—';
   const formatReturn = (r) => {
-    if (r === 0 || r === undefined) return '0.0%';
-    const pct = (r * 100);
+    if (r === undefined || r === null) return '0.0%';
+    const pct = r * 100; // r is already decimal (e.g., 0.01 = 1%)
     const sign = pct >= 0 ? '+' : '';
-    return `${sign}${pct.toFixed(1)}%`;
-  };
-  const formatReturnRaw = (r) => {
-    if (r === 0 || r === undefined) return '0.0%';
-    const sign = r >= 0 ? '+' : '';
-    return `${sign}${r.toFixed(1)}%`;
+    return `${sign}${pct.toFixed(2)}%`;
   };
 
   return (
@@ -95,7 +107,7 @@ const ForecastSummaryPanel = ({ focusPack, focus }) => {
         
         <MetricRow 
           label="Synthetic" 
-          value={formatReturnRaw(syntheticReturn)}
+          value={formatReturn(syntheticReturn)}
           color={syntheticReturn < 0 ? 'text-red-600' : 'text-green-600'}
         />
         
