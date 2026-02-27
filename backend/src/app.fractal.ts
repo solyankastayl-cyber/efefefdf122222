@@ -421,11 +421,8 @@ async function main() {
   await registerDxyMacroCoreModule(app);
   console.log('[Fractal] ✅ DXY Macro Core B1 registered at /api/dxy-macro-core/*');
   
-  // BLOCK: Register DXY Audit Routes (diagnostic endpoints)
-  console.log('[Fractal] Registering DXY Audit Routes...');
-  const { registerDxyAuditRoutes } = await import('./modules/dxy/api/dxy_audit.routes.js');
-  await registerDxyAuditRoutes(app);
-  console.log('[Fractal] ✅ DXY Audit registered at /api/fractal/dxy/audit');
+  // NOTE: DXY Audit Routes are already registered in dxy.fractal.routes.ts
+  // Duplicate registration removed to prevent FST_ERR_DUPLICATED_ROUTE
   
   // BLOCK C: Register AE Brain Module (C1-C5)
   console.log('[Fractal] Registering AE Brain Module (C1-C5)...');
