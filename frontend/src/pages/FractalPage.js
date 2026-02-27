@@ -505,69 +505,58 @@ const FractalTerminal = ({ asset = 'BTC' }) => {
         asset={symbol}
       />
       
-      {/* FORECAST CORE — 70% Chart | 30% Summary */}
+      {/* CHART — Full width, как было раньше */}
       <div className="bg-white border-b border-slate-200">
-        <div className="flex">
-          {/* Left: Chart 70% */}
-          <div className="w-[70%] min-h-[480px]">
-            {isLoading ? (
-              <LoadingSkeleton />
-            ) : (
-              <>
-                {chartMode === 'price' && (
-                  <FractalMainChart 
-                    symbol={symbol} 
-                    width={1000} 
-                    height={460}
-                    focus={focus}
-                    focusPack={focusData}
-                    viewMode={viewMode}
-                  />
-                )}
-                
-                {chartMode === 'replay' && (
-                  <FractalOverlaySection 
-                    symbol={symbol}
-                    focus={focus}
-                    focusPack={focusData}
-                  />
-                )}
-                
-                {chartMode === 'hybrid' && (
-                  <FractalHybridChart
-                    symbol={symbol}
-                    width={1000}
-                    height={460}
-                    focus={focus}
-                    focusPack={focusData}
-                    onPhaseFilter={setPhaseId}
-                    viewMode={viewMode}
-                  />
-                )}
-                
-                {chartMode === 'macro' && symbol === 'DXY' && (
-                  <FractalHybridChart
-                    symbol={symbol}
-                    width={1000}
-                    height={460}
-                    focus={focus}
-                    focusPack={focusData}
-                    onPhaseFilter={setPhaseId}
-                    viewMode={viewMode}
-                    mode="macro"
-                  />
-                )}
-              </>
-            )}
-          </div>
-          
-          {/* Right: Forecast Summary 30% */}
-          <div className="w-[30%] border-l border-slate-200 p-4">
-            <ForecastSummaryPanel 
-              focusPack={focusData}
-              focus={focus}
-            />
-          </div>
+        <div className="min-h-[480px]">
+          {isLoading ? (
+            <LoadingSkeleton />
+          ) : (
+            <>
+              {chartMode === 'price' && (
+                <FractalMainChart 
+                  symbol={symbol} 
+                  width={1200} 
+                  height={460}
+                  focus={focus}
+                  focusPack={focusData}
+                  viewMode={viewMode}
+                />
+              )}
+              
+              {chartMode === 'replay' && (
+                <FractalOverlaySection 
+                  symbol={symbol}
+                  focus={focus}
+                  focusPack={focusData}
+                />
+              )}
+              
+              {chartMode === 'hybrid' && (
+                <FractalHybridChart
+                  symbol={symbol}
+                  width={1200}
+                  height={460}
+                  focus={focus}
+                  focusPack={focusData}
+                  onPhaseFilter={setPhaseId}
+                  viewMode={viewMode}
+                />
+              )}
+              
+              {chartMode === 'macro' && symbol === 'DXY' && (
+                <FractalHybridChart
+                  symbol={symbol}
+                  width={1200}
+                  height={460}
+                  focus={focus}
+                  focusPack={focusData}
+                  onPhaseFilter={setPhaseId}
+                  viewMode={viewMode}
+                  mode="macro"
+                />
+              )}
+            </>
+          )}
         </div>
       </div>
 
