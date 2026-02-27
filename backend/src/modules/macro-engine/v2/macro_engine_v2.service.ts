@@ -300,7 +300,15 @@ export class MacroEngineV2 implements IMacroEngine {
       const goldAdapter = getGoldAdapter();
       const goldFeatures = await goldAdapter.getFeatures();
       if (!goldFeatures) {
-        warnings.push('Gold data not available — using fallback');
+        issues.push('GOLD_DATA_INSUFFICIENT');
+      } else {
+        const goldInfo = goldAdapter.getDataInfo();
+        if (goldInfo && goldInfo.points < 500) {
+          issues.push(`GOLD_DATA_INSUFFICIENT: only ${goldInfo.points} points`);
+        }
+        if (goldFeatures.staleDays > GOLD_SERIES_CONFIG.stalenessThresholdDays) {
+          warnings.push(`Gold stale: ${goldFeatures.staleDays} days old`);
+        }
       }
       
       // Check state service connectivity
