@@ -89,9 +89,104 @@ export async function registerMacroEngineRoutes(fastify: FastifyInstance): Promi
   });
   
   // ─────────────────────────────────────────────────────────────
-  // POST /api/macro-engine/admin/force-engine — Force engine version
+  // ADMIN — Engine lifecycle management
   // ─────────────────────────────────────────────────────────────
   
+  // POST /api/macro-engine/admin/active — Set active engine
+  fastify.post(`${prefix}/admin/active`, async (req, reply) => {
+    const body = req.body as any;
+    const active = body?.active;
+    const asset = (body?.asset || 'DXY').toUpperCase();
+    
+    if (!['v1', 'v2', 'auto'].includes(active)) {
+      return reply.status(400).send({ error: 'Invalid active. Use: v1, v2, auto' });
+    }
+    
+    const router = getMacroEngineRouter();
+    router.forceEngine(active);
+    
+    return { ok: true, asset, active, message: `Engine set to: ${active}` };
+  });
+  
+  // GET /api/macro-engine/admin/active — Get active engine
+  fastify.get(`${prefix}/admin/active`, async (req, reply) => {
+    const query = req.query as any;
+    const asset = (query.asset || 'DXY').toUpperCase();
+    
+    const router = getMacroEngineRouter();
+    const { engine, reason } = await router.getActiveEngine();
+    const status = await router.getStatus();
+    
+    return {
+      ok: true,
+      asset,
+      active: engine.version,
+      mode: status.override || (status.config.autoSwitch ? 'auto' : status.config.defaultEngine),
+      reason,
+    };
+  });
+  
+  // POST /api/macro-engine/admin/promote — Promote V2 to active
+  fastify.post(`${prefix}/admin/promote`, async (req, reply) => {
+    const body = req.body as any;
+    const asset = (body?.asset || 'DXY').toUpperCase();
+    const from = body?.from || 'v1';
+    const to = body?.to || 'v2';
+    const reason = body?.reason || 'manual promotion';
+    
+    // Verify V2 health before promoting
+    const v2 = getMacroEngineV2();
+    const health = await v2.healthCheck();
+    
+    if (!health.ok) {
+      return reply.status(400).send({
+        ok: false,
+        error: 'V2 health check failed — cannot promote',
+        issues: health.issues,
+      });
+    }
+    
+    const router = getMacroEngineRouter();
+    router.forceEngine(to as any);
+    
+    console.log(`[ADMIN] PROMOTE ${asset}: ${from} → ${to} | reason: ${reason}`);
+    
+    return {
+      ok: true,
+      asset,
+      from,
+      to,
+      reason,
+      timestamp: new Date().toISOString(),
+    };
+  });
+  
+  // POST /api/macro-engine/admin/rollback — Rollback to V1
+  fastify.post(`${prefix}/admin/rollback`, async (req, reply) => {
+    const body = req.body as any;
+    const asset = (body?.asset || 'DXY').toUpperCase();
+    const to = body?.to || 'v1';
+    const reason = body?.reason || 'manual rollback';
+    
+    const router = getMacroEngineRouter();
+    const { engine: currentEngine } = await router.getActiveEngine();
+    const from = currentEngine.version;
+    
+    router.forceEngine(to as any);
+    
+    console.log(`[ADMIN] ROLLBACK ${asset}: ${from} → ${to} | reason: ${reason}`);
+    
+    return {
+      ok: true,
+      asset,
+      from,
+      to,
+      reason,
+      timestamp: new Date().toISOString(),
+    };
+  });
+  
+  // POST /api/macro-engine/admin/force-engine — Legacy compat
   fastify.post(`${prefix}/admin/force-engine`, async (req, reply) => {
     const body = req.body as any;
     const version = body?.version;
@@ -103,24 +198,15 @@ export async function registerMacroEngineRoutes(fastify: FastifyInstance): Promi
     const router = getMacroEngineRouter();
     router.forceEngine(version);
     
-    return {
-      ok: true,
-      message: `Forced engine to: ${version}`,
-    };
+    return { ok: true, message: `Forced engine to: ${version}` };
   });
   
-  // ─────────────────────────────────────────────────────────────
   // POST /api/macro-engine/admin/reset — Reset to defaults
-  // ─────────────────────────────────────────────────────────────
-  
   fastify.post(`${prefix}/admin/reset`, async (req, reply) => {
     const router = getMacroEngineRouter();
     router.resetOverride();
     
-    return {
-      ok: true,
-      message: 'Router reset to config defaults',
-    };
+    return { ok: true, message: 'Router reset to config defaults' };
   });
   
   // ─────────────────────────────────────────────────────────────
