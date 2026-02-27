@@ -32,7 +32,6 @@ import { AsOfDatePicker } from '../components/fractal/AsOfDatePicker';
 import { ScenarioBox } from '../components/fractal/ScenarioBox';
 import { RiskBox } from '../components/fractal/RiskBox';
 import MacroPanel from '../components/fractal/MacroPanel';
-import ForecastSummaryPanel from '../components/fractal/ForecastSummaryPanel';
 import FractalEngineBreakdown from '../components/fractal/FractalEngineBreakdown';
 import MacroLayerPanel from '../components/fractal/MacroLayerPanel';
 import OutcomesRiskPanel from '../components/fractal/OutcomesRiskPanel';
