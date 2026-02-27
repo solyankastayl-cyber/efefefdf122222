@@ -67,12 +67,8 @@ export class MacroEngineV2 implements IMacroEngine {
       scoreVector['GOLD'] = goldFeatures.pressure;
     }
     
-    // Base confidence
-    const baseConfidence = this.parseConfidence(score.confidence);
-    let confidence = baseConfidence;
-    if (goldFeatures?.flightToQuality) {
-      confidence = Math.min(1.0, confidence * 1.2);
-    }
+    // V2 computes its OWN confidence (numeric, not inherited from V1 string)
+    const confidence = this.computeV2Confidence(score, goldFeatures);
     
     // ── P1: Stateful regime via RegimeStateService (DB + hysteresis) ──
     const regimeStateSvc = getRegimeStateService();
